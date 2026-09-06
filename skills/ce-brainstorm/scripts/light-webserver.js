@@ -392,6 +392,23 @@ function renderPage(options, origin) {
   return isFullDocument(html) ? injectRefresh(options, html) : wrapFragment(options, html)
 }
 
+// `next` is an origin-root-relative screen URL, separate from the bootstrap
+// query (including its credential). Keep application query/hash state intact.
+function authorizationDestination(req) {
+  const origin = "http://ce-preview.invalid"
+  try {
+    const next = new URL(req.url, origin).searchParams.get("next") ?? "/"
+    if (!next.startsWith("/") || next.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(next)) return null
+    const target = new URL(next, origin)
+    // Dot-segment normalization can expose a leading // even when the input
+    // did not have one. A relative redirect must not become a new authority.
+    if (target.origin !== origin || target.pathname.startsWith("//")) return null
+    return target.href.slice(origin.length)
+  } catch {
+    return null
+  }
+}
+
 function cookieValue(req, name) {
   const header = req.headers.cookie
   if (typeof header !== "string") return null
@@ -987,10 +1004,16 @@ async function serve(options) {
       // serving any authored script, then leave the credential out of its URL.
       if (req.method === "GET" && urlPath === `${OVERLAY_PREFIX}/authorize`) {
         if (!requireLiveAnnotate(req, res)) return
+        const destination = authorizationDestination(req)
+        if (destination === null) {
+          sendJson(res, 400, { error: "next must be an origin-root-relative URL" })
+          return
+        }
         // A cross-site HTTP redirect can withhold a SameSite=Strict cookie.
         // Commit a helper-owned document first, then navigate same-site. No
         // authored code runs while the bearer token is in the document URL.
-        const navigate = 'window.location.replace("/")'
+        // Serialize as a JS string, then escape HTML's script terminator.
+        const navigate = `window.location.replace(${JSON.stringify(destination).replace(/</g, "\\u003c")})`
         const scriptHash = createHash("sha256").update(navigate).digest("base64")
         res.writeHead(200, {
           ...NO_STORE,
