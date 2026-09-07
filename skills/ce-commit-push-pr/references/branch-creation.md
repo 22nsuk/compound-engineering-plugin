@@ -30,11 +30,13 @@ git log origin/<base>..HEAD --oneline
 
 ### 3. Create the feature branch
 
+Read and apply [Worktree preservation](worktree-safety.md) before checkout.
+
 ```bash
 git checkout --no-overwrite-ignore -b <branch-name> "$BASE_REF"
 ```
 
-If checkout fails because uncommitted or ignored files would be overwritten, stop and ask the user to handle the colliding paths. Do not stash or remove them: ignored files may contain user data that `git stash push -u` does not preserve.
+If checkout fails because uncommitted or ignored files would be overwritten, stop and ask the user to handle the colliding paths. In `mode:pipeline`, report the blocker without asking. Do not stash or remove the colliding paths.
 
 ## Fetch failure fallback
 
