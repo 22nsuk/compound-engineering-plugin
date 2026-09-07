@@ -7,6 +7,18 @@ async function readRepoFile(relativePath: string): Promise<string> {
 }
 
 describe("ce-commit-push-pr contract", () => {
+  test("protects ignored user data when switching to a fresh base", async () => {
+    const branchCreation = await readRepoFile(
+      "skills/ce-commit-push-pr/references/branch-creation.md",
+    )
+
+    expect(branchCreation).toContain(
+      'git checkout --no-overwrite-ignore -b <branch-name> "$BASE_REF"',
+    )
+    expect(branchCreation).not.toMatch(/^git stash push -u/m)
+    expect(branchCreation).toMatch(/ignored files.+stop and ask the user/is)
+  })
+
   test("gates every commit publication on project-defined requirements", async () => {
     const publishSurfaceSpecs = [
       ["skills/ce-commit-push-pr/references/commit-and-push.md", "git push -u origin HEAD"],
