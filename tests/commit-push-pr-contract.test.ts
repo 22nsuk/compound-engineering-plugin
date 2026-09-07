@@ -576,7 +576,7 @@ describe("PR concept teaching contract", () => {
     expect(applyRef).toMatch(/outer orchestrator[\s\S]{0,80}second bare babysit/i)
     expect(applyRef).toMatch(/mode:pipeline[\s\S]{0,160}started-only is not enough/i)
     expect(submit).toMatch(/authoritative parent tip/i)
-    expect(submit).toContain('git checkout -b -- "<branch-name>" "<parent-tip>"')
+    expect(submit).toContain('git checkout --no-overwrite-ignore -b "<branch-name>" "<parent-tip>"')
     expect(submit).toMatch(/Do not hard-code `origin\/<parent>`/i)
     expect(submit).toMatch(/starts on the resolved default branch.+follow `references\/branch-creation\.md`/is)
     expect(submit).toMatch(/starts on an existing feature branch.+do not follow `references\/branch-creation\.md`/is)
