@@ -95,10 +95,11 @@ function createFixture(root: string) {
 }
 
 describe("commit-push-pr worktree preservation", () => {
-  test("checkout recipes protect ignored files without automatic stashing", () => {
+  test("checkout recipes keep ignored-file protection and collision handling inline", () => {
     for (const name of ["branch-creation.md", "stack-submit.md"]) {
       const content = readReference(name)
-      assert.doesNotMatch(content, /stash\/pop only|^git stash push -u/m)
+      // The executable cases read the inline checkout, not delegated instructions.
+      assert.doesNotMatch(content, /worktree-safety\.md|stash\/pop only|^git stash push -u/m)
       assert.match(content, /--no-overwrite-ignore/)
     }
   })
