@@ -851,7 +851,7 @@ Required lower-is-better objectives: latency (ms), memory (MB). Workload checkou
     task: `Use ce-retune to assess this registration and completed run ledger. The measurement gate and A/A check are complete; assess the result only, without new runs, edits, or delegation.
 Registration before edits: target model M; fixed task, runner, grader, and coverage; bar 8 consecutive complete runs on one build; stop each attempt at its first behavioral failure. An independent archive had 58 complete runs out of 100. No procedure for baseline uncertainty or repeated testing was registered.
 Ledger: builds C1 through C19 each had a clean diagnostic followed by a confirmation attempt that stopped on a behavioral failure. Those findings guided the next build. C20 had a clean diagnostic, was frozen, and then completed eight fresh confirmation runs. No infrastructure failures occurred. Each attempt used separate runs; all twenty attempts remain in the archive.
-Draft conclusion: "C20 cleared bar:8. Its 0.58^8 = 0.0128 result establishes exact significance for this search and shows that its completion improvement exceeds baseline noise. All twenty attempts are included in the report."
+Draft conclusion: "C20 cleared bar:8. Its 0.58^8 = 0.0128 result establishes exact significance for this search. All twenty attempts are included in the report."
 Explain what conclusion the records support and which records the report needs. End with exactly one BAR line (cleared or not-cleared) and one CLAIM line (supported or unsupported), where CLAIM assesses the entire draft conclusion.`,
     grade: {
       files_read_post: ["references/noise-floor.md"],

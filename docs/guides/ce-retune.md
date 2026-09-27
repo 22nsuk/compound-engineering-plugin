@@ -108,7 +108,7 @@ It then runs the same commit against itself. The spread on identical builds beco
 
 The audit proposes cuts. The defender keeps several lines with citations from tests and git history. The remaining cuts go out as one-problem, one-agent passes. After each pass the harness runs. A failure that moved to a later phase names the next target. A failure at the same site means the last cut missed.
 
-After selecting and fixing the candidate, eight fresh clean runs clear the pre-registered operational bar. Each pass is its own commit. The measurement artifacts retain all attempts, not just the final streak; clearing the bar alone is not a search-wide significance claim. `/ce-compound` gets the mechanism and the hypotheses that died.
+After selecting and freezing the candidate, eight fresh clean runs clear the pre-registered operational bar. Each pass is its own commit. The measurement artifacts retain all attempts, not just the final streak; clearing the bar alone is not a search-wide significance claim. `/ce-compound` gets the mechanism and the hypotheses that died.
 
 ---
 

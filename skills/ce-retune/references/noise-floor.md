@@ -85,7 +85,7 @@ Against the engagement's 58% baseline, detecting +30 points gives about 31 per a
 
 A pre-registered streak can serve as an operational confirmation bar on one frozen build under fixed measurement conditions. Under a null with a **known, fixed success probability `p` and independent runs**, one pre-specified attempt at N consecutive clean runs has all-success probability `p^N`. That calculation alone is not a significance level for an adaptive search.
 
-A baseline measured independently from A/A and archive runs is still an estimate. Account for its sample size and uncertainty in any statistical claim. When baseline uncertainty, changed conditions, or dependence between runs is unaccounted for, report the observed confirmation descriptively rather than as an exact test.
+Establish the baseline before the change, from runs other than the ones being tested. Estimating `p` from the streak's own runs makes the calculation circular and meaningless. A baseline measured independently from A/A and archive runs is still an estimate. Account for its sample size and uncertainty in any statistical claim. When baseline uncertainty, changed conditions, or dependence between runs is unaccounted for, report the observed confirmation descriptively rather than as an exact test.
 
 For one pre-specified attempt under the fixed `p = 0.58` null:
 
