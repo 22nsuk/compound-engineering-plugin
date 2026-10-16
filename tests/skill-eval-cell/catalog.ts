@@ -163,6 +163,8 @@ export type Scenario = {
   preview_ref?: string
   /** Scenario-specific A/B base when the contract was frozen after the corpus sweep. */
   baseline_ref?: string
+  /** Extra environment for the host CLI, e.g. a peer time budget that forces a degradation path. */
+  env?: Record<string, string>
 }
 
 const UNDERSTANDING_BASE_REF = "8df67793b9733d2220fa9a7fc37139931471af62"
@@ -3090,6 +3092,84 @@ Do not write the plan file yet. I only want the Goal Capsule right now. Print it
     grade: {
       files_read_post: ["references/persona-selection.md"],
       must_include: ["coherence", "feasibility", "product-lens"],
+    },
+  },
+  {
+    id: "ce-doc-review/peer-outcome-folded",
+    post_only: true,
+    skill: "ce-doc-review",
+    cohort: "untouched",
+    key_behavior: "delegation",
+    read_only: false,
+    git_init: true,
+    fixture: `${FIX}/doc-review-peer-outcome`,
+    timeout_secs: 2700,
+    why: "Live different-provider peer on an activated trio lens: the non-interactive result must say the peer folded, and the review must still complete.",
+    pre_contract: "Non-interactive mode emits no prose about the cross-model pass.",
+    task: `Use ce-doc-review with the arguments: mode:non-interactive docs/plans/2026-08-20-1100-feat-free-tier-greeting-api-plan.md`,
+    grade: {
+      declared: { "peer.outcome": "folded" },
+      must_include: ["Review complete"],
+    },
+  },
+  {
+    id: "ce-doc-review/peer-outcome-disabled-by-config",
+    post_only: true,
+    skill: "ce-doc-review",
+    cohort: "untouched",
+    key_behavior: "delegation",
+    read_only: false,
+    git_init: true,
+    fixture: `${FIX}/doc-review-staked-position`,
+    timeout_secs: 1500,
+    why: "Checkout config turns the cross-model pass off while product-lens activates: a clean never-started skip that the caller must still see.",
+    pre_contract: "A clean skip stays silent in non-interactive mode.",
+    task: `Use ce-doc-review with the arguments: mode:non-interactive docs/plans/2026-08-20-1100-feat-free-tier-greeting-api-plan.md`,
+    grade: {
+      declared: { "peer.outcome": "in-process-fallback" },
+      must_include: ["whole-doc: not run", "Review complete"],
+    },
+  },
+  {
+    id: "ce-doc-review/peer-outcome-started-no-artifact",
+    post_only: true,
+    skill: "ce-doc-review",
+    cohort: "untouched",
+    key_behavior: "delegation",
+    read_only: false,
+    git_init: true,
+    fixture: `${FIX}/doc-review-peer-outcome`,
+    // The real peer starts, then the worker's own hard cap stops it; the job settles done with nothing to fold.
+    env: { CROSS_MODEL_HARD_SECS: "5" },
+    timeout_secs: 1500,
+    why: "A peer that starts but leaves nothing to fold must not read as folded, and the whole-doc sweep must still get a line saying what happened to it.",
+    pre_contract: "A clean skip stays silent in non-interactive mode.",
+    task: `Use ce-doc-review with the arguments: mode:non-interactive docs/plans/2026-08-20-1100-feat-free-tier-greeting-api-plan.md`,
+    grade: {
+      declared: { "peer.outcome": "in-process-fallback" },
+      must_include_any: [["cross-model whole-doc peer:", "whole-doc: not run (cross-model peer not run:"]],
+      must_include: ["Review complete"],
+    },
+  },
+  {
+    id: "ce-doc-review/peer-outcome-started-failed",
+    post_only: true,
+    skill: "ce-doc-review",
+    cohort: "untouched",
+    key_behavior: "delegation",
+    read_only: false,
+    git_init: true,
+    fixture: `${FIX}/doc-review-peer-outcome`,
+    // A one-byte log cap makes the runner kill each worker on its first output, so every started job ends failed.
+    env: { CE_PEER_LOG_MAX_BYTES: "1" },
+    timeout_secs: 1500,
+    why: "A started job that ends failed folds nothing; the outcome must still have a value and the lens must be named with its terminal state.",
+    pre_contract: "A started job that ends non-done is named in Coverage with its terminal state.",
+    task: `Use ce-doc-review with the arguments: mode:non-interactive docs/plans/2026-08-20-1100-feat-free-tier-greeting-api-plan.md`,
+    grade: {
+      declared: { "peer.outcome": "in-process-fallback" },
+      must_include_any: [["peer: failed", "peer: timeout", "peer: died-without-result"]],
+      must_include: ["Review complete"],
     },
   },
   {
