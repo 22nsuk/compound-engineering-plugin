@@ -318,6 +318,22 @@ describe("ce-code-review contract", () => {
     expect(content).toContain("**Deprecated alias**")
   })
 
+  test("mode:agent JSON records the peer outcome in finish-input's vocabulary", async () => {
+    const modes = await readRepoFile("skills/ce-code-review/references/modes-and-output.md")
+    const finishInput = await readRepoFile("skills/ce-code-review/references/finish-input.md")
+    const review = await readRepoFile("skills/ce-code-review/references/cross-model-review.md")
+    const json = modes.split("## JSON output format (`mode:agent` only)")[1] ?? ""
+    const outcomes = (text: string) =>
+      (text.match(/"peer": \{[^}]*?"outcome": "([^"]+)"/)?.[1] ?? "")
+        .split(" | ")
+        .filter((value) => value !== "null")
+
+    expect(outcomes(json).length).toBeGreaterThan(0)
+    expect(outcomes(json)).toEqual(outcomes(finishInput))
+    expect(json).toContain("copy `outcome` and `coverage` verbatim from the `peer` record in `finish-input.json`")
+    expect(review).not.toContain("stay silent in `mode:agent`")
+  })
+
   test("documents policy-driven routing and actionable handoff", async () => {
     const content = await readCodeReviewRuntimeContract()
 
