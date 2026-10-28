@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
 import { promises as fs } from "fs"
 import path from "path"
 import os from "os"
@@ -168,6 +168,71 @@ describe("writeOpenCodeBundle", () => {
 
     const backupContent = JSON.parse(await fs.readFile(path.join(outputRoot, backupFileName!), "utf8"))
     expect(backupContent.custom).toBe("value")
+  })
+
+  test.skipIf(process.platform === "win32" || process.getuid?.() === 0).each([
+    '{"userSetting":true}',
+    '{"userSetting":',
+  ])("preserves the install when config backup is unwritable: %s", async (originalConfig) => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-backup-failure-"))
+    const outputRoot = path.join(tempRoot, ".opencode")
+    try {
+      const bundle: OpenCodeBundle = {
+        pluginName: "compound-engineering",
+        config: {},
+        agents: [],
+        plugins: [],
+        commandFiles: [{ name: "kept-command", content: "Installed command" }],
+        skillDirs: [],
+      }
+      await writeOpenCodeBundle(outputRoot, bundle)
+      const configPath = path.join(outputRoot, "opencode.json")
+      const manifestPath = path.join(outputRoot, "compound-engineering", "install-manifest.json")
+      const originalManifest = await fs.readFile(manifestPath, "utf8")
+      await fs.writeFile(configPath, originalConfig)
+      await fs.chmod(configPath, 0o600)
+      // The existing file stays writable; only creation of its backup is denied.
+      await fs.chmod(outputRoot, 0o500)
+
+      await expect(writeOpenCodeBundle(outputRoot, { ...bundle, commandFiles: [] }))
+        .rejects.toThrow(`Could not back up existing config at ${configPath}`)
+
+      expect(await fs.readFile(configPath, "utf8")).toBe(originalConfig)
+      expect(await fs.readFile(manifestPath, "utf8")).toBe(originalManifest)
+      expect(await fs.readFile(path.join(outputRoot, "commands", "kept-command.md"), "utf8"))
+        .toBe("Installed command\n")
+      expect((await fs.readdir(outputRoot)).filter((name) => name.startsWith("opencode.json.bak."))).toEqual([])
+    } finally {
+      await fs.chmod(outputRoot, 0o700)
+      await fs.rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
+  test("backs up malformed config without claiming its user settings were merged", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-malformed-config-"))
+    const log = spyOn(console, "log").mockImplementation(() => {})
+    try {
+      const configPath = path.join(tempRoot, "opencode.json")
+      const original = '{"userSetting":'
+      await fs.writeFile(configPath, original)
+      await writeOpenCodeBundle(tempRoot, {
+        config: { $schema: "https://opencode.ai/config.json" },
+        agents: [],
+        plugins: [],
+        commandFiles: [],
+        skillDirs: [],
+      })
+
+      const backups = (await fs.readdir(tempRoot)).filter((name) => name.startsWith("opencode.json.bak."))
+      expect(backups).toHaveLength(1)
+      expect(await fs.readFile(path.join(tempRoot, backups[0]), "utf8")).toBe(original)
+      expect(JSON.parse(await fs.readFile(configPath, "utf8")))
+        .toEqual({ $schema: "https://opencode.ai/config.json" })
+      expect(log.mock.calls.flat().join("\n")).not.toContain("user settings preserved")
+    } finally {
+      log.mockRestore()
+      await fs.rm(tempRoot, { recursive: true, force: true })
+    }
   })
 
   test("merges mcp servers without overwriting user entry", async () => {

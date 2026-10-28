@@ -120,21 +120,22 @@ export async function writeOpenCodeBundle(
   const skillsEscaped = await storeRootEscapesManagedRoot(openCodePaths.root, openCodePaths.skillsDir)
 
   await ensureDir(openCodePaths.root)
+  const hadExistingConfig = await pathExists(openCodePaths.configPath)
+  const backupPath = await backupFile(openCodePaths.configPath)
+  if (hadExistingConfig && !backupPath) {
+    throw new Error(`Could not back up existing config at ${openCodePaths.configPath}; refusing to modify the install.`)
+  }
+  if (backupPath) {
+    console.log(`Backed up existing config to ${backupPath}`)
+  }
+  const merged = await mergeOpenCodeConfig(openCodePaths.configPath, bundle.config)
+
   if (!agentsEscaped) await cleanupRemovedManagedFiles(openCodePaths.agentsDir, manifest, "agents", currentAgents)
   if (!commandsEscaped) await cleanupRemovedManagedFiles(openCodePaths.commandDir, manifest, "commands", currentCommands)
   if (!pluginsEscaped) await cleanupRemovedManagedFiles(openCodePaths.pluginsDir, manifest, "plugins", currentPlugins)
   if (!skillsEscaped) await cleanupRemovedManagedDirectories(openCodePaths.skillsDir, manifest, "skills", currentSkills)
 
-  const hadExistingConfig = await pathExists(openCodePaths.configPath)
-  const backupPath = await backupFile(openCodePaths.configPath)
-  if (backupPath) {
-    console.log(`Backed up existing config to ${backupPath}`)
-  }
-  const merged = await mergeOpenCodeConfig(openCodePaths.configPath, bundle.config)
   await writeJson(openCodePaths.configPath, merged)
-  if (hadExistingConfig) {
-    console.log("Merged plugin config into existing opencode.json (user settings preserved)")
-  }
 
   const seenAgents = new Set<string>()
   const preservedAgentNames = new Set<string>()
