@@ -9,6 +9,7 @@ import {
   cleanupCurrentManagedDirectory,
   cleanupRemovedManagedDirectories,
   cleanupRemovedManagedFiles,
+  isPathWithinRoot,
   lstatOrNull,
   type ManagedInstallManifest,
   moveLegacyArtifactToBackup,
@@ -26,11 +27,16 @@ import {
 // the install manifest's `groups` map, so the same ownership rule applies
 // uniformly here rather than a symlink-only guard.
 async function cleanupCurrentManagedFile(
+  rootDir: string,
   targetPath: string,
   manifest: ManagedInstallManifest | null,
   group: string,
   entryName: string,
 ): Promise<boolean> {
+  if (!(await isPathWithinRoot(rootDir, targetPath))) {
+    console.warn(`Skipping ${targetPath}: resolves outside the managed store (not modified)`)
+    return true
+  }
   const stat = await lstatOrNull(targetPath)
   if (!stat) return false
   if (stat.isSymbolicLink()) {
@@ -145,7 +151,7 @@ export async function writeOpenCodeBundle(
       continue
     }
     const targetPath = path.join(openCodePaths.agentsDir, agentFileName)
-    const preserved = await cleanupCurrentManagedFile(targetPath, manifest, "agents", agentFileName)
+    const preserved = await cleanupCurrentManagedFile(openCodePaths.agentsDir, targetPath, manifest, "agents", agentFileName)
     if (preserved) {
       preservedAgentNames.add(agentFileName)
       continue
@@ -161,7 +167,7 @@ export async function writeOpenCodeBundle(
       continue
     }
     const dest = path.join(openCodePaths.commandDir, ...commandName.split("/"))
-    const preserved = await cleanupCurrentManagedFile(dest, manifest, "commands", commandName)
+    const preserved = await cleanupCurrentManagedFile(openCodePaths.commandDir, dest, manifest, "commands", commandName)
     if (preserved) {
       preservedCommandNames.add(commandName)
       continue
@@ -181,7 +187,7 @@ export async function writeOpenCodeBundle(
         continue
       }
       const targetPath = path.join(openCodePaths.pluginsDir, plugin.name)
-      const preserved = await cleanupCurrentManagedFile(targetPath, manifest, "plugins", plugin.name)
+      const preserved = await cleanupCurrentManagedFile(openCodePaths.pluginsDir, targetPath, manifest, "plugins", plugin.name)
       if (preserved) {
         preservedPluginNames.add(plugin.name)
         continue
@@ -199,7 +205,7 @@ export async function writeOpenCodeBundle(
         continue
       }
       const targetDir = path.join(openCodePaths.skillsDir, skillName)
-      const preserved = await cleanupCurrentManagedDirectory(targetDir, manifest, "skills", skillName)
+      const preserved = await cleanupCurrentManagedDirectory(openCodePaths.skillsDir, targetDir, manifest, "skills", skillName)
       if (preserved) {
         preservedSkillNames.add(skillName)
         continue
