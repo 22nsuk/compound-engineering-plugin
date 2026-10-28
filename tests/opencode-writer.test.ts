@@ -170,6 +170,38 @@ describe("writeOpenCodeBundle", () => {
     expect(backupContent.custom).toBe("value")
   })
 
+  test("updates skill ownership when the manifest explicitly includes the default skill path", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-overlapping-skills-"))
+    try {
+      const sourceRoot = path.join(tempRoot, "source")
+      const outputRoot = path.join(tempRoot, ".opencode")
+      const skillPath = path.join(sourceRoot, "skills", "sample", "SKILL.md")
+      await fs.mkdir(path.dirname(skillPath), { recursive: true })
+      await fs.mkdir(path.join(sourceRoot, ".claude-plugin"))
+      await fs.writeFile(path.join(sourceRoot, ".claude-plugin", "plugin.json"), JSON.stringify({
+        name: "ownership-plugin",
+        version: "1.0.0",
+        skills: ["./skills"],
+      }))
+      const firstVersion = "---\nname: sample\ndescription: Fixture\n---\nVersion one\n"
+      await fs.writeFile(skillPath, firstVersion)
+      const options = { agentMode: "subagent", inferTemperature: true, permissions: "none" } as const
+      await writeOpenCodeBundle(outputRoot, convertClaudeToOpenCode(await loadClaudePlugin(sourceRoot), options))
+
+      const manifestPath = path.join(outputRoot, "ownership-plugin", "install-manifest.json")
+      expect(JSON.parse(await fs.readFile(manifestPath, "utf8")).groups.skills).toEqual(["sample"])
+
+      await fs.writeFile(skillPath, firstVersion.replace("Version one", "Version two"))
+      await writeOpenCodeBundle(outputRoot, convertClaudeToOpenCode(await loadClaudePlugin(sourceRoot), options))
+      const installed = await fs.readFile(path.join(outputRoot, "skills", "sample", "SKILL.md"), "utf8")
+      expect(installed).toContain("Version two")
+      expect(installed).not.toContain("Version one")
+      expect(JSON.parse(await fs.readFile(manifestPath, "utf8")).groups.skills).toEqual(["sample"])
+    } finally {
+      await fs.rm(tempRoot, { recursive: true, force: true })
+    }
+  })
+
   test.skipIf(process.platform === "win32" || process.getuid?.() === 0).each([
     '{"userSetting":true}',
     '{"userSetting":',
