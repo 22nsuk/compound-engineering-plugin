@@ -109,11 +109,9 @@ export async function writeOpenCodeBundle(
   const currentPlugins = bundle.plugins.map((plugin) => plugin.name)
   const currentSkills = bundle.skillDirs.map((skill) => sanitizePathName(skill.name))
 
-  // Ancestor-symlink containment: the per-entry guards below inspect only the
-  // leaf node, so a symlinked store dir (or a symlinked ancestor of it) pointed
-  // at a user fork would otherwise have every cleanup/write act through the link
-  // into the fork. A store that escapes the OpenCode root is skipped wholesale
-  // and recorded as owning nothing.
+  // Check stores against the config root before using them as per-entry roots.
+  // Otherwise a repointed store would make its external contents look contained.
+  // Escaped stores are skipped and recorded as owning nothing.
   const agentsEscaped = await storeRootEscapesManagedRoot(openCodePaths.root, openCodePaths.agentsDir)
   const commandsEscaped = await storeRootEscapesManagedRoot(openCodePaths.root, openCodePaths.commandDir)
   const pluginsEscaped = await storeRootEscapesManagedRoot(openCodePaths.root, openCodePaths.pluginsDir)
